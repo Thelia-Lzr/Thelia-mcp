@@ -139,11 +139,13 @@ async def get_qq():
 
 
 if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 8000))
     print("=" * 60)
     print("Thelia MCP HTTP Server 启动中...")
     print("=" * 60)
-    print("服务地址: http://localhost:8000")
-    print("API文档: http://localhost:8000/docs")
-    print("工具列表: http://localhost:8000/tools")
+    print(f"服务地址: http://0.0.0.0:{port}")
+    print(f"API文档: http://0.0.0.0:{port}/docs")
+    print(f"工具列表: http://0.0.0.0:{port}/tools")
     print("=" * 60)
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=port)

@@ -79,6 +79,36 @@ curl http://localhost:8000/api/temperature
 curl http://localhost:8000/api/age
 ```
 
+## 云平台部署
+
+### Railway 一键部署
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/Thelia-Lzr/Thelia-mcp)
+
+**手动部署到 Railway:**
+
+1. 访问 [Railway](https://railway.app/)
+2. 创建新项目，选择 "Deploy from GitHub repo"
+3. 选择此仓库
+4. Railway 会自动检测并部署 HTTP 服务
+5. 部署完成后，Railway 会提供一个公开的 URL
+
+**Railway 配置说明:**
+- 项目已包含 `Procfile`、`railway.toml` 和 `runtime.txt`
+- 服务会自动使用 Railway 提供的 `PORT` 环境变量
+- 支持自动健康检查和失败重启
+
+**注意:** Railway 部署的是 HTTP REST API 模式，不是 MCP stdio 模式。
+
+### 其他云平台
+
+本服务也可以部署到其他支持 Python 的云平台：
+
+- **Heroku**: 包含 `Procfile`，可直接部署
+- **Render**: 自动检测 Python 项目
+- **Fly.io**: 需要创建 `fly.toml` 配置文件
+- **Google Cloud Run**: 需要 Dockerfile（可自行添加）
+
 ## 配置到MCP客户端
 
 ### Claude Desktop 配置
@@ -141,6 +171,9 @@ Thelia-mcp/
 ├── test_server.py     # 测试脚本
 ├── start.sh           # Linux/MacOS部署脚本
 ├── start.bat          # Windows部署脚本
+├── Procfile           # Railway/Heroku部署配置
+├── railway.toml       # Railway平台配置
+├── runtime.txt        # Python版本指定
 ├── requirements.txt   # Python依赖
 ├── .gitignore        # Git忽略文件
 └── README.md         # 项目说明
