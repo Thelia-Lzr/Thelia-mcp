@@ -151,10 +151,22 @@ async def rpc(request: Request):
     return await _handle_jsonrpc(request)
 
 
+@app.get("/rpc")
+async def rpc_get():
+    """JSON-RPC 2.0 健康检查响应（GET）"""
+    return _jsonrpc_error(None, -32600, "Invalid Request: use POST")
+
+
 @app.post("/")
 async def root_rpc(request: Request):
     """根路径 JSON-RPC 2.0 端点"""
     return await _handle_jsonrpc(request)
+
+
+@app.get("/")
+async def root_get():
+    """根路径 JSON-RPC 2.0 健康检查响应（GET）"""
+    return _jsonrpc_error(None, -32600, "Invalid Request: use POST")
 
 
 if __name__ == "__main__":
