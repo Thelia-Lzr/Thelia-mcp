@@ -41,6 +41,21 @@ def _jsonrpc_error(id_value, code, message):
     )
 
 
+def _mcp_initialize_result():
+    return {
+        "protocolVersion": "2024-11-05",
+        "serverInfo": {
+            "name": "thelia-mcp",
+            "version": "1.0.0",
+        },
+        "capabilities": {
+            "tools": {},
+            "resources": {},
+            "prompts": {},
+        },
+    }
+
+
 def _mcp_tools_list():
     return [
         {
@@ -133,6 +148,12 @@ async def _handle_jsonrpc(request: Request):
         return _jsonrpc_error(request_id, -32600, "Invalid Request")
 
     try:
+        if method == "initialize":
+            return _jsonrpc_response(request_id, _mcp_initialize_result())
+        if method == "initialized":
+            return JSONResponse({}, status_code=204)
+        if method == "ping":
+            return _jsonrpc_response(request_id, {})
         if method == "tools/list":
             return _jsonrpc_response(request_id, {"tools": _mcp_tools_list()})
         if method == "tools/call":
@@ -140,6 +161,10 @@ async def _handle_jsonrpc(request: Request):
             if not name:
                 return _jsonrpc_error(request_id, -32602, "Missing params.name")
             return _jsonrpc_response(request_id, {"content": _mcp_call_tool(name)})
+        if method == "resources/list":
+            return _jsonrpc_response(request_id, {"resources": []})
+        if method == "prompts/list":
+            return _jsonrpc_response(request_id, {"prompts": []})
         return _jsonrpc_error(request_id, -32601, "Method not found")
     except ValueError as exc:
         return _jsonrpc_error(request_id, -32602, str(exc))
