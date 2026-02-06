@@ -21,9 +21,7 @@ app.add_middleware(
 )
 
 
-@app.get("/")
-async def root():
-    """根路径，返回服务信息"""
+def _root_payload():
     return {
         "name": "Thelia MCP Server",
         "version": "1.0.0",
@@ -37,6 +35,18 @@ async def root():
             "qq": "/api/qq - 获取QQ号"
         }
     }
+
+
+@app.get("/")
+async def root():
+    """根路径，返回服务信息"""
+    return _root_payload()
+
+
+@app.post("/")
+async def root_post():
+    """根路径，支持POST访问"""
+    return _root_payload()
 
 
 @app.get("/tools")
