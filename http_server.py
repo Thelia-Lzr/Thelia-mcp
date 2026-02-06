@@ -15,7 +15,7 @@ app = FastAPI(title="Thelia MCP HTTP Server", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # 允许所有域名，生产环境建议指定具体域名
-    allow_credentials=True,
+    allow_credentials=False,  # 使用通配符时不能启用凭证
     allow_methods=["*"],
     allow_headers=["*"],
 )
