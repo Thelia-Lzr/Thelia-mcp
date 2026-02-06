@@ -5,8 +5,9 @@ Thelia MCP HTTP Server - 提供HTTP/SSE接口的MCP服务（支持CORS）
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from datetime import datetime
+import json
 import uvicorn
 
 app = FastAPI(title="Thelia MCP HTTP Server", version="1.0.0")
@@ -19,7 +20,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-def _jsonrpc_response(id_value, result=None, error=None):
+def _jsonrpc_payload(id_value, result=None, error=None):
     payload = {
         "jsonrpc": "2.0",
         "id": id_value,
@@ -28,7 +29,11 @@ def _jsonrpc_response(id_value, result=None, error=None):
         payload["error"] = error
     else:
         payload["result"] = result
-    return JSONResponse(payload)
+    return payload
+
+
+def _jsonrpc_response(id_value, result=None, error=None):
+    return JSONResponse(_jsonrpc_payload(id_value, result=result, error=error))
 
 
 def _jsonrpc_error(id_value, code, message):
@@ -39,6 +44,14 @@ def _jsonrpc_error(id_value, code, message):
             "message": message,
         },
     )
+
+
+def _jsonrpc_stream(payload):
+    def _event_stream():
+        data = json.dumps(payload, ensure_ascii=True)
+        yield f"data: {data}\n\n"
+
+    return StreamingResponse(_event_stream(), media_type="text/event-stream")
 
 
 def _mcp_initialize_result():
@@ -129,45 +142,60 @@ def _mcp_call_tool(name: str):
 
 async def _handle_jsonrpc(request: Request):
     """JSON-RPC 2.0 处理器，支持MCP的 tools/list 与 tools/call"""
+    accept_header = request.headers.get("accept", "").lower()
+    stream_mode = "text/event-stream" in accept_header
+
+    def respond(result=None, error=None):
+        payload = _jsonrpc_payload(request_id, result=result, error=error)
+        if stream_mode:
+            return _jsonrpc_stream(payload)
+        return JSONResponse(payload)
+
+    def respond_error(code, message):
+        return respond(error={"code": code, "message": message})
+
     try:
         payload = await request.json()
     except Exception:
-        return _jsonrpc_error(None, -32700, "Parse error")
+        request_id = None
+        return respond_error(-32700, "Parse error")
 
     if not isinstance(payload, dict):
-        return _jsonrpc_error(None, -32600, "Invalid Request")
+        request_id = None
+        return respond_error(-32600, "Invalid Request")
 
     if payload.get("jsonrpc") != "2.0":
-        return _jsonrpc_error(payload.get("id"), -32600, "Invalid Request")
+        request_id = payload.get("id")
+        return respond_error(-32600, "Invalid Request")
 
     request_id = payload.get("id")
     method = payload.get("method")
     params = payload.get("params") or {}
 
     if not isinstance(method, str):
-        return _jsonrpc_error(request_id, -32600, "Invalid Request")
+        return respond_error(-32600, "Invalid Request")
 
     try:
         if method == "initialize":
-            return _jsonrpc_response(request_id, _mcp_initialize_result())
+            return respond(result=_mcp_initialize_result())
         if method == "initialized":
             return JSONResponse({}, status_code=204)
         if method == "ping":
-            return _jsonrpc_response(request_id, {})
+            return respond(result={})
         if method == "tools/list":
-            return _jsonrpc_response(request_id, {"tools": _mcp_tools_list()})
+            return respond(result={"tools": _mcp_tools_list()})
         if method == "tools/call":
             name = params.get("name")
             if not name:
-                return _jsonrpc_error(request_id, -32602, "Missing params.name")
-            return _jsonrpc_response(request_id, {"content": _mcp_call_tool(name)})
+                return respond_error(-32602, "Missing params.name")
+            return respond(result={"content": _mcp_call_tool(name)})
         if method == "resources/list":
-            return _jsonrpc_response(request_id, {"resources": []})
+            return respond(result={"resources": []})
         if method == "prompts/list":
-            return _jsonrpc_response(request_id, {"prompts": []})
-        return _jsonrpc_error(request_id, -32601, "Method not found")
+            return respond(result={"prompts": []})
+        return respond_error(-32601, "Method not found")
     except ValueError as exc:
-        return _jsonrpc_error(request_id, -32602, str(exc))
+        return respond_error(-32602, str(exc))
 
 
 @app.post("/rpc")
