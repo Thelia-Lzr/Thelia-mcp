@@ -141,11 +141,24 @@ async def get_qq():
 if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 8000))
+    
+    # 检测公网部署环境
+    railway_domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN")
+    railway_static_url = os.environ.get("RAILWAY_STATIC_URL")
+    
+    # 确定服务地址
+    if railway_domain:
+        base_url = f"https://{railway_domain}"
+    elif railway_static_url:
+        base_url = railway_static_url
+    else:
+        base_url = f"http://localhost:{port}"
+    
     print("=" * 60)
     print("Thelia MCP HTTP Server 启动中...")
     print("=" * 60)
-    print(f"服务地址: http://0.0.0.0:{port}")
-    print(f"API文档: http://0.0.0.0:{port}/docs")
-    print(f"工具列表: http://0.0.0.0:{port}/tools")
+    print(f"服务地址: {base_url}")
+    print(f"API文档: {base_url}/docs")
+    print(f"工具列表: {base_url}/tools")
     print("=" * 60)
     uvicorn.run(app, host="0.0.0.0", port=port)
