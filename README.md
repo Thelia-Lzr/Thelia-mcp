@@ -14,7 +14,23 @@
 
 ## 一键部署
 
-### 安装依赖
+### 方法1：使用部署脚本（推荐）
+
+**Linux/MacOS:**
+```bash
+./start.sh
+```
+
+**Windows:**
+```cmd
+start.bat
+```
+
+脚本会自动安装依赖并让您选择运行模式。
+
+### 方法2：手动安装
+
+#### 安装依赖
 
 ```bash
 pip install -r requirements.txt
@@ -123,6 +139,8 @@ Thelia-mcp/
 ├── server.py          # MCP stdio服务器
 ├── http_server.py     # HTTP REST API服务器（支持CORS）
 ├── test_server.py     # 测试脚本
+├── start.sh           # Linux/MacOS部署脚本
+├── start.bat          # Windows部署脚本
 ├── requirements.txt   # Python依赖
 ├── .gitignore        # Git忽略文件
 └── README.md         # 项目说明
