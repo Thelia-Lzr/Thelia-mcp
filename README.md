@@ -1,6 +1,6 @@
 # Thelia-mcp
 
-一个基于Python的MCP（Model Context Protocol）服务，提供关于Thelia的信息查询工具。支持两种模式：标准MCP stdio协议和HTTP REST API（支持CORS跨域访问）。
+一个基于Python的MCP（Model Context Protocol）服务，提供关于Thelia的信息查询工具。当前提供 HTTP JSON-RPC 2.0 接口（支持流式/SSE）。
 
 ## 功能
 
@@ -26,7 +26,7 @@
 start.bat
 ```
 
-脚本会自动安装依赖并让您选择运行模式。
+脚本会自动安装依赖并启动服务。
 
 ### 方法2：手动安装
 
@@ -38,45 +38,60 @@ pip install -r requirements.txt
 
 ## 使用方式
 
-### 方式1：MCP stdio模式（用于MCP客户端）
-
-```bash
-python server.py
-```
-
-服务器将通过标准输入输出（stdio）与MCP客户端通信。
-
-### 方式2：HTTP REST API模式（支持CORS跨域）
+### 方式：HTTP JSON-RPC 2.0 模式（支持SSE）
 
 ```bash
 python http_server.py
 ```
 
-服务器将在 `http://localhost:8000` 启动HTTP服务，支持跨域访问。
+服务器将在 `http://localhost:8000` 启动HTTP服务。
 
-访问 http://localhost:8000/docs 查看交互式API文档。
+#### JSON-RPC 2.0 端点
 
-#### HTTP API端点
+支持以下方法（MCP 常用方法已覆盖）：
 
-- `GET /` - 服务信息
-- `GET /tools` - 列出所有工具
-- `GET /api/temperature` - 获取体温
-- `GET /api/location` - 获取位置
-- `GET /api/age` - 获取年龄
-- `GET /api/gender` - 获取性别
-- `GET /api/qq` - 获取QQ号
+- `initialize`
+- `initialized`
+- `ping`
+- `tools/list`
+- `tools/call`
+- `resources/list`
+- `prompts/list`
 
-#### HTTP API示例
+**端点：**
+- `POST /` 或 `POST /rpc`（JSON-RPC 2.0）
+
+**健康检查：**
+- `GET /` 或 `GET /rpc` 会返回 JSON-RPC 错误（HTTP 200），用于平台健康检查。
+
+#### JSON-RPC 示例
 
 ```bash
-# 获取所有工具
-curl http://localhost:8000/tools
+# 初始化
+curl -X POST http://localhost:8000/ \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}'
 
-# 获取体温
-curl http://localhost:8000/api/temperature
+# 列出工具
+curl -X POST http://localhost:8000/ \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
 
-# 获取年龄
-curl http://localhost:8000/api/age
+# 调用工具
+curl -X POST http://localhost:8000/ \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"get_age"}}'
+```
+
+#### 流式（SSE）模式
+
+当客户端发送 `Accept: text/event-stream` 时，服务会返回 SSE 流式响应：
+
+```bash
+curl -X POST http://localhost:8000/ \
+  -H "Content-Type: application/json" \
+  -H "Accept: text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":4,"method":"ping","params":{}}'
 ```
 
 ## 云平台部署
@@ -90,7 +105,7 @@ curl http://localhost:8000/api/age
 1. 访问 [Railway](https://railway.app/)
 2. 创建新项目，选择 "Deploy from GitHub repo"
 3. 选择此仓库
-4. Railway 会自动检测并部署 HTTP 服务
+4. Railway 会自动检测并部署 HTTP JSON-RPC 服务
 5. 部署完成后，Railway 会提供一个公开的 URL
 
 **Railway 配置说明:**
@@ -98,7 +113,7 @@ curl http://localhost:8000/api/age
 - 服务会自动使用 Railway 提供的 `PORT` 环境变量
 - 支持自动健康检查和失败重启
 
-**注意:** Railway 部署的是 HTTP REST API 模式，不是 MCP stdio 模式。
+**注意:** Railway 部署的是 HTTP JSON-RPC 2.0 模式。
 
 ### 其他云平台
 
@@ -109,31 +124,9 @@ curl http://localhost:8000/api/age
 - **Fly.io**: 需要创建 `fly.toml` 配置文件
 - **Google Cloud Run**: 需要 Dockerfile（可自行添加）
 
-## 配置到MCP客户端
+## MCP 客户端连接提示
 
-### Claude Desktop 配置
-
-在 Claude Desktop 的配置文件中添加：
-
-**MacOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-
-```json
-{
-  "mcpServers": {
-    "thelia": {
-      "command": "python",
-      "args": ["/path/to/Thelia-mcp/server.py"]
-    }
-  }
-}
-```
-
-请将 `/path/to/Thelia-mcp/server.py` 替换为实际的文件路径。
-
-### 其他MCP客户端
-
-该服务器使用标准的MCP stdio传输协议，兼容所有支持MCP的客户端。
+请确保客户端使用 HTTP JSON-RPC 2.0（可选 SSE）。如果客户端默认使用 stdio 或 WebSocket，需要改成 HTTP 传输方式。
 
 ## 工具使用示例
 
@@ -156,9 +149,9 @@ python test_server.py
 ## 技术栈
 
 - Python 3.8+
-- MCP (Model Context Protocol) SDK - stdio模式
-- FastAPI + Uvicorn - HTTP REST API模式
-- CORS支持 - 允许跨域访问
+- FastAPI + Uvicorn - HTTP JSON-RPC 2.0
+- SSE 流式响应支持
+- CORS 支持
 
 ## 开发
 
@@ -166,8 +159,8 @@ python test_server.py
 
 ```
 Thelia-mcp/
-├── server.py          # MCP stdio服务器
-├── http_server.py     # HTTP REST API服务器（支持CORS）
+├── server.py          # MCP stdio服务器（可选，本地使用）
+├── http_server.py     # HTTP JSON-RPC 2.0 服务器（支持SSE）
 ├── test_server.py     # 测试脚本
 ├── start.sh           # Linux/MacOS部署脚本
 ├── start.bat          # Windows部署脚本
@@ -183,13 +176,9 @@ Thelia-mcp/
 
 要添加新的工具：
 
-**对于 stdio 模式** (server.py):
-1. 在 `handle_list_tools()` 函数中添加新的工具定义
-2. 在 `handle_call_tool()` 函数中添加新的工具处理逻辑
-
-**对于 HTTP 模式** (http_server.py):
-1. 在 `list_tools()` 函数中添加工具信息
-2. 创建新的API端点处理函数
+**对于 HTTP JSON-RPC 模式** (http_server.py):
+1. 在 `_mcp_tools_list()` 中添加工具定义
+2. 在 `_mcp_call_tool()` 中添加工具处理逻辑
 
 ## 许可证
 
