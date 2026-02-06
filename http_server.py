@@ -107,7 +107,7 @@ def _mcp_call_tool(name: str):
         return [
             {
                 "type": "text",
-                "text": f"Thelia的年龄是{age}岁（{current_year} - 2006）",
+                "text": f"Thelia的年龄是{age}岁",
             }
         ]
     if name == "get_gender":
